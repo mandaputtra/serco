@@ -6,6 +6,7 @@
     "src/**/*.vue"
   ],
   "compilerOptions": {
+    "verbatimModuleSyntax": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [
