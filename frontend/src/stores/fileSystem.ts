@@ -42,7 +42,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
     // Clipboard Status
     clipboardMessage: '',
     showToast: false,
-
+    
     // Copy Operation State
     showCopyConfirm: false,
     isCopying: false,
@@ -92,11 +92,29 @@ export const useFileSystemStore = defineStore('fileSystem', {
     },
 
     // Selection Logic
-    toggleLeftSelection(path: string) {
-      if (this.selectedLeft.has(path)) {
-        this.selectedLeft.delete(path)
+    async toggleLeftSelection(node: FileNode) {
+      const isSelected = !this.selectedLeft.has(node.path)
+      this.toggleRecursive(node, isSelected)
+    },
+
+    async toggleRecursive(node: FileNode, isSelected: boolean) {
+      // Toggle current node
+      if (isSelected) {
+        this.selectedLeft.add(node.path)
       } else {
-        this.selectedLeft.add(path)
+        this.selectedLeft.delete(node.path)
+      }
+
+      // Handle children if directory
+      if (node.isDir) {
+        // If children are not loaded, try to load them first (optional, but good for UX)
+        // However, auto-loading everything recursively can be slow. 
+        // For now, we only recurse if children are already present to avoid accidental massive scans.
+        // Or we could force load. Let's stick to loaded children to be safe, or just what's in memory.
+        
+        if (node.children) {
+          node.children.forEach(child => this.toggleRecursive(child, isSelected))
+        }
       }
     },
 
@@ -153,9 +171,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
         const srcPaths = Array.from(this.selectedLeft)
         await CopyFiles(srcPaths, this.selectedRight)
         this.showToastNotification("Files copied successfully")
-
-        // Clear selection after successful copy? Optional.
-        // this.clearSelection()
+        this.clearSelection() // Clear selection after successful copy
       } catch (e: any) {
         this.showToastNotification(`Copy failed: ${e.message || e}`)
       } finally {

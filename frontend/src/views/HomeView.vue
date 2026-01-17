@@ -15,6 +15,12 @@ onMounted(() => {
 
 const selectionList = computed(() => Array.from(store.selectedLeft))
 
+const getFileName = (path: string) => {
+  // Handle both Windows (\) and Unix (/) paths
+  const separator = path.includes('\\') ? '\\' : '/'
+  return path.split(separator).pop() || path
+}
+
 const clearSelection = () => {
   store.clearSelection()
   showSelectionModal.value = false
@@ -120,8 +126,18 @@ const progressMessage = computed(() => {
         
         <div class="flex-grow overflow-auto p-4 bg-gray-50">
           <ul class="space-y-1">
-            <li v-for="path in selectionList" :key="path" class="text-sm font-mono text-gray-700 break-all p-2 bg-white border border-gray-200 rounded shadow-sm">
-              {{ path }}
+            <li 
+              v-for="path in selectionList" 
+              :key="path" 
+              class="text-sm font-mono text-gray-700 p-2 bg-white border border-gray-200 rounded shadow-sm hover:bg-gray-50 relative group"
+              :title="path"
+            >
+              {{ getFileName(path) }}
+              <div class="hidden group-hover:block absolute left-0 bottom-full mb-1 w-full z-10">
+                <div class="bg-gray-800 text-white text-xs rounded p-2 break-all shadow-lg mx-2">
+                  {{ path }}
+                </div>
+              </div>
             </li>
           </ul>
           <div v-if="selectionList.length === 0" class="text-gray-500 text-center italic py-4">
@@ -177,7 +193,7 @@ const progressMessage = computed(() => {
              <div class="max-h-40 overflow-auto border rounded bg-gray-50 p-2">
                <ul class="space-y-1">
                  <li v-for="path in selectionList" :key="path" class="text-xs font-mono text-gray-600 break-all truncate">
-                   {{ path }}
+                   {{ getFileName(path) }}
                  </li>
                </ul>
              </div>

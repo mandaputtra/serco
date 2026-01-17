@@ -93,7 +93,7 @@ const toggleOpen = async () => {
 
 const handleSelect = () => {
   if (props.paneId === 'left') {
-    store.toggleLeftSelection(props.node.path)
+    store.toggleLeftSelection(props.node)
   } else {
     // Right pane single select (only folders allowed as dest)
     if (props.node.isDir) {
