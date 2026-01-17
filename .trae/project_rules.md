@@ -12,6 +12,8 @@ For now the project name is file-search-and-copy. A way to find files on user di
 - Vue 3, frontend frameworks
 - Wails, golang desktop app framework
 - Pinia.js, state management for Vue 3
+- SCSS, CSS preprocessor
+- TailwindCSS, CSS framework
 
 ## Project Structure
 
