@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 // @ts-ignore
-import { GetHomeDir, ScanDirectory } from '../../wailsjs/go/main/App'
+import { GetHomeDir, ScanDirectory, CopyFiles } from '../../wailsjs/go/main/App'
+// @ts-ignore
+import { ClipboardSetText, EventsOn, EventsOff } from '../../wailsjs/runtime'
 
 export interface FileNode {
   name: string
@@ -9,28 +11,54 @@ export interface FileNode {
   size: number
   modTime: string
   children?: FileNode[]
-  isLoading?: boolean // Added for lazy loading state
+  isLoading?: boolean
+}
+
+export interface CopyProgress {
+  currentFile: string
+  filesDone: number
+  totalFiles: number
+  percentage: number
 }
 
 export const useFileSystemStore = defineStore('fileSystem', {
   state: () => ({
-    rootNode: null as FileNode | null,
+    // Dual pane roots
+    leftRoot: null as FileNode | null,
+    rightRoot: null as FileNode | null,
+
+    // State
     isLoading: false,
-    selectedPaths: new Set<string>(),
+    activePane: 'left' as 'left' | 'right',
+    showHiddenFiles: false,
+
+    // Selections
+    selectedLeft: new Set<string>(), // Multi-select
+    selectedRight: null as string | null, // Single-select (destination)
+
+    // Search
     searchQuery: '',
+
+    // Clipboard Status
+    clipboardMessage: '',
+    showToast: false,
+
+    // Copy Operation State
+    showCopyConfirm: false,
+    isCopying: false,
+    copyProgress: null as CopyProgress | null
   }),
+
   actions: {
-    async loadFileSystem() {
+    async init() {
       this.isLoading = true
-      console.log('Starting file system load...')
       try {
         const homeDir = await GetHomeDir()
-        console.log('Home directory:', homeDir)
-        // Scan only top level
-        this.rootNode = await ScanDirectory(homeDir)
-        console.log('Root node loaded:', this.rootNode)
+        this.leftRoot = await ScanDirectory(homeDir)
+        // Initialize right pane to same dir initially or null
+        this.rightRoot = await ScanDirectory(homeDir)
       } catch (error) {
-        console.error('Failed to load file system:', error)
+        console.error('Failed to init file system:', error)
       } finally {
         this.isLoading = false
       }
@@ -39,20 +67,12 @@ export const useFileSystemStore = defineStore('fileSystem', {
     async loadChildren(node: FileNode) {
       if (!node.isDir || (node.children && node.children.length > 0)) return
 
-      // If we already have empty children array (from Go), it means we haven't fetched real children yet
-      // BUT, Go might return empty array if dir is empty. 
-      // To distinguish, we rely on the fact that if we haven't loaded, we call ScanDirectory again.
-      // Optimization: We could add a 'loaded' flag, but for now re-scanning on expand is safer.
-
       node.isLoading = true
       try {
-        console.log('Loading children for:', node.path)
         const result = await ScanDirectory(node.path)
         if (result && result.children) {
           node.children = result.children
         } else {
-          // If no children, ensure it's an empty array so we don't try to load again unnecessarily
-          // (unless we want to support refresh)
           node.children = []
         }
       } catch (error) {
@@ -62,15 +82,100 @@ export const useFileSystemStore = defineStore('fileSystem', {
       }
     },
 
-    toggleSelection(path: string) {
-      if (this.selectedPaths.has(path)) {
-        this.selectedPaths.delete(path)
+    setActivePane(pane: 'left' | 'right') {
+      this.activePane = pane
+    },
+
+    toggleHiddenFiles() {
+      this.showHiddenFiles = !this.showHiddenFiles
+      // Trigger a refresh or UI update if needed, though reactivity handles v-if
+    },
+
+    // Selection Logic
+    toggleLeftSelection(path: string) {
+      if (this.selectedLeft.has(path)) {
+        this.selectedLeft.delete(path)
       } else {
-        this.selectedPaths.add(path)
+        this.selectedLeft.add(path)
       }
     },
-    isSelected(path: string) {
-      return this.selectedPaths.has(path)
+
+    setRightSelection(path: string) {
+      this.selectedRight = path
+    },
+
+    clearSelection() {
+      this.selectedLeft.clear()
+    },
+
+    // Clipboard
+    async copyToClipboard() {
+      if (this.selectedLeft.size === 0) return
+
+      const paths = Array.from(this.selectedLeft).join('\n')
+      try {
+        await ClipboardSetText(paths)
+        this.showToastNotification(`Copied ${this.selectedLeft.size} paths to clipboard`)
+      } catch (e) {
+        console.error(e)
+      }
+    },
+
+    // File Operations
+    initiateCopy() {
+      if (this.selectedLeft.size === 0) {
+        this.showToastNotification("No files selected")
+        return
+      }
+      if (!this.selectedRight) {
+        this.showToastNotification("No destination selected")
+        return
+      }
+      this.showCopyConfirm = true
+    },
+
+    async confirmCopy() {
+      this.showCopyConfirm = false
+      this.isCopying = true
+      this.copyProgress = {
+        currentFile: 'Starting...',
+        filesDone: 0,
+        totalFiles: this.selectedLeft.size,
+        percentage: 0
+      }
+
+      // Listen for progress
+      EventsOn("copy-progress", (progress: CopyProgress) => {
+        this.copyProgress = progress
+      })
+
+      try {
+        const srcPaths = Array.from(this.selectedLeft)
+        await CopyFiles(srcPaths, this.selectedRight)
+        this.showToastNotification("Files copied successfully")
+
+        // Clear selection after successful copy? Optional.
+        // this.clearSelection()
+      } catch (e: any) {
+        this.showToastNotification(`Copy failed: ${e.message || e}`)
+      } finally {
+        // Clean up
+        EventsOff("copy-progress")
+        this.isCopying = false
+        this.copyProgress = null
+      }
+    },
+
+    cancelCopy() {
+      this.showCopyConfirm = false
+    },
+
+    showToastNotification(msg: string) {
+      this.clipboardMessage = msg
+      this.showToast = true
+      setTimeout(() => {
+        this.showToast = false
+      }, 3000)
     }
   }
 })

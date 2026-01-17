@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,6 +25,14 @@ type FileNode struct {
 	Size     int64       `json:"size"`
 	ModTime  string      `json:"modTime"`
 	Children []*FileNode `json:"children,omitempty"`
+}
+
+// CopyProgress represents the progress of a file copy operation
+type CopyProgress struct {
+	CurrentFile string  `json:"currentFile"`
+	FilesDone   int     `json:"filesDone"`
+	TotalFiles  int     `json:"totalFiles"`
+	Percentage  float64 `json:"percentage"`
 }
 
 // NewApp creates a new App application struct
@@ -145,31 +155,159 @@ func (a *App) ScanDirectory(path string) (*FileNode, error) {
 // SearchFiles searches for files matching the query within the given root path (recursive with depth limit)
 func (a *App) SearchFiles(query string, rootPath string) ([]*FileNode, error) {
 	var results []*FileNode
-
-	// Simple depth-limited walker
-	// var walk func(string, int)
-	// walk = func(currentPath string, depth int) {
-	// 	if depth > 10 { // Hard depth limit
-	// 		return
-	// 	}
-
-	// 	entries, err := os.ReadDir(currentPath)
-	// 	if err != nil {
-	// 		return
-	// 	}
-
-	// 	for _, entry := range entries {
-	// 		// Check match
-	// 		// Note: This is a simple case-insensitive substring match
-	// 		// In a real app, you might want more robust matching
-	// 		matched := false
-	// 		// Check logic here...
-	// 		_ = matched
-
-	// 		// Recursion logic...
-	// 	}
-	// }
-
-	// Placeholder implementation for search - to be expanded if needed
 	return results, nil
+}
+
+// CopyFiles copies a list of files to a destination directory
+func (a *App) CopyFiles(srcPaths []string, destDir string) error {
+	destInfo, err := os.Stat(destDir)
+	if err != nil {
+		return fmt.Errorf("destination directory does not exist: %v", err)
+	}
+	if !destInfo.IsDir() {
+		return fmt.Errorf("destination is not a directory")
+	}
+
+	// Filter valid files and directories
+	var itemsToCopy []string
+	for _, src := range srcPaths {
+		_, err := os.Stat(src)
+		if err == nil {
+			itemsToCopy = append(itemsToCopy, src)
+		}
+	}
+
+	totalItems := len(itemsToCopy)
+	if totalItems == 0 {
+		return fmt.Errorf("no valid items to copy")
+	}
+
+	// Start copy loop
+	for i, src := range itemsToCopy {
+		srcBase := filepath.Base(src)
+		
+		// Emit progress before starting file
+		progress := CopyProgress{
+			CurrentFile: srcBase,
+			FilesDone:   i,
+			TotalFiles:  totalItems,
+			Percentage:  float64(i) / float64(totalItems) * 100,
+		}
+		runtime.EventsEmit(a.ctx, "copy-progress", progress)
+
+		srcInfo, err := os.Stat(src)
+		if err != nil {
+			runtime.LogErrorf(a.ctx, "Failed to stat source %s: %v", src, err)
+			continue
+		}
+
+		destPath := filepath.Join(destDir, srcBase)
+
+		if srcInfo.IsDir() {
+			// Recursive copy
+			err = copyDir(src, destPath)
+			if err != nil {
+				runtime.LogErrorf(a.ctx, "Failed to copy directory %s: %v", src, err)
+				return fmt.Errorf("failed to copy directory %s: %v", src, err)
+			}
+		} else {
+			// File copy
+			err = copyFile(src, destPath, srcInfo)
+			if err != nil {
+				runtime.LogErrorf(a.ctx, "Failed to copy file %s: %v", src, err)
+				return fmt.Errorf("failed to copy file %s: %v", src, err)
+			}
+		}
+		
+		// Sleep briefly to let UI update for small files
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Emit 100% completion
+	runtime.EventsEmit(a.ctx, "copy-progress", CopyProgress{
+		CurrentFile: "Complete",
+		FilesDone:   totalItems,
+		TotalFiles:  totalItems,
+		Percentage:  100,
+	})
+
+	return nil
+}
+
+// copyFile copies a single file from src to dst, preserving mod time
+func copyFile(src, dst string, info os.FileInfo) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+
+	return os.Chtimes(dst, time.Now(), info.ModTime())
+}
+
+// copyDir recursively copies a directory tree, attempting to preserve permissions
+func copyDir(src string, dst string) error {
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
+
+	si, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if !si.IsDir() {
+		return fmt.Errorf("source is not a directory")
+	}
+
+	_, err = os.Stat(dst)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(dst, si.Mode())
+		if err != nil {
+			return err
+		}
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			err = copyDir(srcPath, dstPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Skip symlinks for now if not needed, or handle them
+			if entry.Type()&os.ModeSymlink != 0 {
+				continue
+			}
+			
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
+			
+			err = copyFile(srcPath, dstPath, info)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
