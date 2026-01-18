@@ -26,14 +26,21 @@ const isVisible = computed(() => {
 })
 
 // Search Logic
-const hasMatchingChild = (node: FileNode, query: string, isRegex: boolean): boolean => {
+const hasMatchingChild = (
+  node: FileNode,
+  query: string,
+  isRegex: boolean
+): boolean => {
   if (!node.children) return false
-  return node.children.some(child => {
+  return node.children.some((child) => {
     // Apply visibility filter to search recursion too
     if (props.foldersOnly && !child.isDir) return false
     if (child.name.startsWith('.') && !store.showHiddenFiles) return false
-    
-    return checkMatch(child.name, query, isRegex) || hasMatchingChild(child, query, isRegex)
+
+    return (
+      checkMatch(child.name, query, isRegex) ||
+      hasMatchingChild(child, query, isRegex)
+    )
   })
 }
 
@@ -45,10 +52,10 @@ const matchesSearch = computed(() => {
   const isLeft = props.paneId === 'left'
   // Left: Regex, Case-insensitive. Right: Exact, Case-sensitive
   const isRegex = isLeft
-  
+
   // Match self
   if (checkMatch(props.node.name, store.searchQuery, isRegex)) return true
-  
+
   // Match children
   return hasMatchingChild(props.node, store.searchQuery, isRegex)
 })
@@ -56,7 +63,7 @@ const matchesSearch = computed(() => {
 // Auto-expand Logic
 const checkAutoExpand = (query: string) => {
   if (store.activePane !== props.paneId) return
-  
+
   const isRegex = props.paneId === 'left'
   if (query && hasMatchingChild(props.node, query, isRegex)) {
     isOpen.value = true
@@ -71,9 +78,12 @@ const checkAutoExpand = (query: string) => {
 }
 
 // Watch for search query changes
-watch(() => store.searchQuery, (newVal) => {
-  checkAutoExpand(newVal)
-})
+watch(
+  () => store.searchQuery,
+  (newVal) => {
+    checkAutoExpand(newVal)
+  }
+)
 
 // Initial check on mount
 onMounted(async () => {
@@ -85,7 +95,7 @@ onMounted(async () => {
       await store.loadChildren(props.node)
     }
   }
-  
+
   // Also check if existing search query requires expansion
   if (store.searchQuery) {
     checkAutoExpand(store.searchQuery)
@@ -143,7 +153,7 @@ const formatDate = (dateStr: string) => {
 
 <template>
   <div v-if="isVisible && matchesSearch" class="file-node select-none">
-    <div 
+    <div
       class="flex items-center p-2 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-50 transition-colors duration-150"
       :class="{ 'opacity-60 italic': isHidden, 'bg-blue-50': isSelected }"
       :style="{ paddingLeft: `${level * 20 + 8}px` }"
@@ -151,18 +161,18 @@ const formatDate = (dateStr: string) => {
       @dblclick="handleDoubleClick"
     >
       <!-- Checkbox / Radio -->
-      <div 
+      <div
         @click.stop="handleSelect"
         @dblclick.stop
         class="mr-3 flex items-center justify-center cursor-pointer"
       >
-        <input 
+        <input
           v-if="paneId === 'left'"
-          type="checkbox" 
-          :checked="isSelected" 
+          type="checkbox"
+          :checked="isSelected"
           class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         />
-        <input 
+        <input
           v-else-if="node.isDir"
           type="radio"
           :checked="isSelected"
@@ -172,11 +182,30 @@ const formatDate = (dateStr: string) => {
       </div>
 
       <!-- Expand/Collapse Icon -->
-      <span v-if="node.isDir" class="mr-2 w-4 text-center text-gray-500 font-mono">
+      <span
+        v-if="node.isDir"
+        class="mr-2 w-4 text-center text-gray-500 font-mono"
+      >
         <template v-if="node.isLoading">
-           <svg class="animate-spin h-3 w-3 text-gray-500 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <svg
+            class="animate-spin h-3 w-3 text-gray-500 inline"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
         </template>
         <template v-else>
@@ -189,10 +218,15 @@ const formatDate = (dateStr: string) => {
       <span class="mr-2 text-lg">{{ node.isDir ? '📁' : '📄' }}</span>
 
       <!-- Name -->
-      <span class="flex-grow truncate mr-4 font-medium text-gray-700">{{ node.name }}</span>
+      <span class="flex-grow truncate mr-4 font-medium text-gray-700">{{
+        node.name
+      }}</span>
 
       <!-- Metadata (Desktop only) -->
-      <div v-if="!foldersOnly" class="hidden md:flex gap-4 text-gray-500 text-xs whitespace-nowrap items-center">
+      <div
+        v-if="!foldersOnly"
+        class="hidden md:flex gap-4 text-gray-500 text-xs whitespace-nowrap items-center"
+      >
         <span class="w-20 text-right">{{ formatSize(node.size) }}</span>
         <span class="w-40 text-right">{{ formatDate(node.modTime) }}</span>
       </div>
@@ -200,10 +234,10 @@ const formatDate = (dateStr: string) => {
 
     <!-- Children -->
     <div v-if="node.isDir && isOpen">
-      <FileNode 
-        v-for="child in node.children" 
-        :key="child.path" 
-        :node="child" 
+      <FileNode
+        v-for="child in node.children"
+        :key="child.path"
+        :node="child"
         :level="level + 1"
         :paneId="paneId"
         :allowMultiSelect="allowMultiSelect"

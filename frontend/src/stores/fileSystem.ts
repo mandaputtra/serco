@@ -52,7 +52,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
     // Copy Operation State
     showCopyConfirm: false,
     isCopying: false,
-    copyProgress: null as CopyProgress | null
+    copyProgress: null as CopyProgress | null,
   }),
 
   actions: {
@@ -95,7 +95,11 @@ export const useFileSystemStore = defineStore('fileSystem', {
     },
 
     // Navigation Logic
-    async navigateTo(path: string, paneId: 'left' | 'right', addToHistory = true) {
+    async navigateTo(
+      path: string,
+      paneId: 'left' | 'right',
+      addToHistory = true
+    ) {
       this.isLoading = true
       try {
         const result = await ScanDirectory(path)
@@ -104,7 +108,10 @@ export const useFileSystemStore = defineStore('fileSystem', {
           if (addToHistory) {
             // If we are not at the end of history, truncate forward history
             if (this.leftHistoryIndex < this.leftHistory.length - 1) {
-              this.leftHistory = this.leftHistory.slice(0, this.leftHistoryIndex + 1)
+              this.leftHistory = this.leftHistory.slice(
+                0,
+                this.leftHistoryIndex + 1
+              )
             }
             this.leftHistory.push(path)
             this.leftHistoryIndex++
@@ -113,7 +120,10 @@ export const useFileSystemStore = defineStore('fileSystem', {
           this.rightRoot = result
           if (addToHistory) {
             if (this.rightHistoryIndex < this.rightHistory.length - 1) {
-              this.rightHistory = this.rightHistory.slice(0, this.rightHistoryIndex + 1)
+              this.rightHistory = this.rightHistory.slice(
+                0,
+                this.rightHistoryIndex + 1
+              )
             }
             this.rightHistory.push(path)
             this.rightHistoryIndex++
@@ -130,12 +140,20 @@ export const useFileSystemStore = defineStore('fileSystem', {
       if (paneId === 'left') {
         if (this.leftHistoryIndex > 0) {
           this.leftHistoryIndex--
-          await this.navigateTo(this.leftHistory[this.leftHistoryIndex], 'left', false)
+          await this.navigateTo(
+            this.leftHistory[this.leftHistoryIndex],
+            'left',
+            false
+          )
         }
       } else {
         if (this.rightHistoryIndex > 0) {
           this.rightHistoryIndex--
-          await this.navigateTo(this.rightHistory[this.rightHistoryIndex], 'right', false)
+          await this.navigateTo(
+            this.rightHistory[this.rightHistoryIndex],
+            'right',
+            false
+          )
         }
       }
     },
@@ -144,12 +162,20 @@ export const useFileSystemStore = defineStore('fileSystem', {
       if (paneId === 'left') {
         if (this.leftHistoryIndex < this.leftHistory.length - 1) {
           this.leftHistoryIndex++
-          await this.navigateTo(this.leftHistory[this.leftHistoryIndex], 'left', false)
+          await this.navigateTo(
+            this.leftHistory[this.leftHistoryIndex],
+            'left',
+            false
+          )
         }
       } else {
         if (this.rightHistoryIndex < this.rightHistory.length - 1) {
           this.rightHistoryIndex++
-          await this.navigateTo(this.rightHistory[this.rightHistoryIndex], 'right', false)
+          await this.navigateTo(
+            this.rightHistory[this.rightHistoryIndex],
+            'right',
+            false
+          )
         }
       }
     },
@@ -180,12 +206,14 @@ export const useFileSystemStore = defineStore('fileSystem', {
       // Handle children if directory
       if (node.isDir) {
         // If children are not loaded, try to load them first (optional, but good for UX)
-        // However, auto-loading everything recursively can be slow. 
+        // However, auto-loading everything recursively can be slow.
         // For now, we only recurse if children are already present to avoid accidental massive scans.
         // Or we could force load. Let's stick to loaded children to be safe, or just what's in memory.
 
         if (node.children) {
-          node.children.forEach(child => this.toggleRecursive(child, isSelected))
+          node.children.forEach((child) =>
+            this.toggleRecursive(child, isSelected)
+          )
         }
       }
     },
@@ -205,7 +233,9 @@ export const useFileSystemStore = defineStore('fileSystem', {
       const paths = Array.from(this.selectedLeft).join('\n')
       try {
         await ClipboardSetText(paths)
-        this.showToastNotification(`Copied ${this.selectedLeft.size} paths to clipboard`)
+        this.showToastNotification(
+          `Copied ${this.selectedLeft.size} paths to clipboard`
+        )
       } catch (e) {
         console.error(e)
       }
@@ -214,11 +244,11 @@ export const useFileSystemStore = defineStore('fileSystem', {
     // File Operations
     initiateCopy() {
       if (this.selectedLeft.size === 0) {
-        this.showToastNotification("No files selected")
+        this.showToastNotification('No files selected')
         return
       }
       if (!this.selectedRight) {
-        this.showToastNotification("No destination selected")
+        this.showToastNotification('No destination selected')
         return
       }
       this.showCopyConfirm = true
@@ -231,24 +261,24 @@ export const useFileSystemStore = defineStore('fileSystem', {
         currentFile: 'Starting...',
         filesDone: 0,
         totalFiles: this.selectedLeft.size,
-        percentage: 0
+        percentage: 0,
       }
 
       // Listen for progress
-      EventsOn("copy-progress", (progress: CopyProgress) => {
+      EventsOn('copy-progress', (progress: CopyProgress) => {
         this.copyProgress = progress
       })
 
       try {
         const srcPaths = Array.from(this.selectedLeft)
         await CopyFiles(srcPaths, String(this.selectedRight))
-        this.showToastNotification("Files copied successfully")
+        this.showToastNotification('Files copied successfully')
         this.clearSelection() // Clear selection after successful copy
       } catch (e: any) {
         this.showToastNotification(`Copy failed: ${e.message || e}`)
       } finally {
         // Clean up
-        EventsOff("copy-progress")
+        EventsOff('copy-progress')
         this.isCopying = false
         this.copyProgress = null
       }
@@ -264,6 +294,6 @@ export const useFileSystemStore = defineStore('fileSystem', {
       setTimeout(() => {
         this.showToast = false
       }, 3000)
-    }
-  }
+    },
+  },
 })
