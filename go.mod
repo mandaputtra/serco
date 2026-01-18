@@ -1,4 +1,4 @@
-module myapp
+module serco
 
 go 1.22.0
 

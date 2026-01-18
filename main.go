@@ -27,7 +27,7 @@ func main() {
 	// Create application with options
 	// 使用选项创建应用
 	err := wails.Run(&options.App{
-		Title:             "myapp",
+		Title:             "serco",
 		Width:             900,
 		Height:            600,
 		MinWidth:          900,
