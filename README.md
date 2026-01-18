@@ -4,6 +4,8 @@
 
 Built with [Wails](https://wails.io/), Serco combines the raw performance of a **Go** backend with the reactivity and modern UI of **Vue.js 3**.
 
+![Serco Demo](docs/demo.gif)
+
 ## ✨ Key Features
 
 - **Dual-Pane Interface**:
