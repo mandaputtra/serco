@@ -440,21 +440,31 @@ const handlePaste = (e: ClipboardEvent) => {
         <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
           <p>
             The <strong>Left Pane</strong> supports Regular Expressions (Regex)
-            for advanced filtering.
+            and <strong>Multi-File Search</strong>.
           </p>
 
           <div
             class="bg-gray-50 dark:bg-gray-700 p-3 rounded border dark:border-gray-600"
           >
-            <h4 class="font-semibold mb-2">Examples:</h4>
-            <ul class="list-disc pl-5 space-y-1">
+            <h4 class="font-semibold mb-2">Regex Examples:</h4>
+            <ul class="list-disc pl-5 space-y-1 mb-4">
               <li><code>\.jpg$</code> - Find all JPG images</li>
               <li><code>^report</code> - Files starting with "report"</li>
               <li>
-                <code>test|demo</code> - Files containing "test" OR "demo"
+                <code>\d{4}</code> - Files containing 4 digits (e.g., years)
+              </li>
+            </ul>
+
+            <h4 class="font-semibold mb-2">Multi-File Search:</h4>
+            <ul class="list-disc pl-5 space-y-1">
+              <li>
+                Separate multiple queries with commas:
+                <code>img_01.jpg, img_02.png</code>
               </li>
               <li>
-                <code>\d{4}</code> - Files containing 4 digits (e.g., years)
+                <strong>Paste Support</strong>: Paste a list of filenames (one
+                per line) to automatically convert them into a comma-separated
+                search.
               </li>
             </ul>
           </div>

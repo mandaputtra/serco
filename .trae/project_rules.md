@@ -32,3 +32,7 @@ For now the project name is file-search-and-copy. A way to find files on user di
 
 - `wails dev` run development server
 - `wails build` run build
+
+## Coding Styles
+
+- Please follow the .eslintrc.cjs and .prettierrc.jsonv for coding styles on frontend folder
