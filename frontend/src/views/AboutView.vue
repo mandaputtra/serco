@@ -10,8 +10,8 @@ const openWebsite = () => {
 </script>
 
 <template>
-  <div class="about flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
-    <div class="max-w-2xl w-full bg-white rounded-xl shadow-lg overflow-hidden">
+  <div class="about flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6 overflow-y-auto">
+    <div class="max-w-2xl w-full bg-white rounded-xl shadow-lg overflow-hidden my-auto">
       <!-- Header -->
       <div class="bg-blue-600 p-8 text-center">
         <h1 class="text-3xl font-bold text-white mb-2">File Search & Copy</h1>
@@ -48,7 +48,7 @@ const openWebsite = () => {
 
         <div class="space-y-4">
           <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">License</h2>
-          <div class="bg-gray-50 p-4 rounded-lg border text-sm text-gray-600 font-mono">
+          <div class="bg-gray-50 p-4 rounded-lg border text-sm text-gray-600 font-mono max-h-64 overflow-y-auto">
             <p class="mb-2 font-bold">MIT License</p>
             <p class="mb-2">Copyright (c) 2024 Manda Putra</p>
             <p>

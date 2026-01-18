@@ -4,10 +4,12 @@ import { useFileSystemStore } from '@/stores/fileSystem'
 import FileTree from '@/components/FileTree.vue'
 import SplitPane from '@/components/SplitPane.vue'
 import Toolbar from '@/components/Toolbar.vue'
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const store = useFileSystemStore()
 
 const showSelectionModal = ref(false)
+const showHelpModal = ref(false)
 
 onMounted(() => {
   store.init()
@@ -53,21 +55,35 @@ const progressMessage = computed(() => {
     <!-- Header Area -->
     <div class="flex-none p-4 bg-white border-b shadow-sm space-y-3 z-20">
       
-      <!-- Search Bar (Full Width) - Enhanced size (h-12) -->
-      <div class="relative w-full h-12">
-        <input 
-          v-model="store.searchQuery"
-          type="text" 
-          :placeholder="searchPlaceholder"
-          class="w-full h-full pl-11 pr-4 py-2 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-          :class="{ 'ring-2 ring-blue-100 border-blue-400': store.activePane === 'left', 'ring-2 ring-green-100 border-green-400': store.activePane === 'right' }"
-          :disabled="store.isCopying"
-        />
-        <span class="absolute left-3.5 top-3.5 text-gray-400">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <!-- Search Bar Row -->
+      <div class="flex items-center space-x-2">
+        <!-- Search Bar (Flexible Width) -->
+        <div class="relative flex-grow h-12">
+          <input 
+            v-model="store.searchQuery"
+            type="text" 
+            :placeholder="searchPlaceholder"
+            class="w-full h-full pl-11 pr-4 py-2 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+            :class="{ 'ring-2 ring-blue-100 border-blue-400': store.activePane === 'left', 'ring-2 ring-green-100 border-green-400': store.activePane === 'right' }"
+            :disabled="store.isCopying"
+          />
+          <span class="absolute left-3.5 top-3.5 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+        </div>
+
+        <!-- Help Button -->
+        <button 
+          @click="showHelpModal = true"
+          class="h-12 w-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          title="Search Help"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </span>
+        </button>
       </div>
 
       <!-- Toolbar (10px spacing below search) -->
@@ -84,21 +100,71 @@ const progressMessage = computed(() => {
         :min-right-width="20"
       >
         <template #left>
-          <div class="h-full pr-1 md:pr-0">
-            <FileTree 
-              paneId="left" 
-              :allowMultiSelect="true" 
-              :foldersOnly="false" 
-            />
+          <div class="h-full pr-1 md:pr-0 flex flex-col">
+            <!-- Navigation Controls Left -->
+            <div class="flex items-center space-x-2 mb-2">
+              <button 
+                @click="store.goBack('left')" 
+                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                :disabled="store.leftHistoryIndex <= 0"
+                title="Back"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button 
+                @click="store.goForward('left')" 
+                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                :disabled="store.leftHistoryIndex >= store.leftHistory.length - 1"
+                title="Forward"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+              </button>
+              <div class="flex-grow overflow-hidden">
+                <Breadcrumbs paneId="left" />
+              </div>
+            </div>
+
+            <div class="flex-grow overflow-hidden border border-gray-200 rounded">
+               <FileTree 
+                paneId="left" 
+                :allowMultiSelect="true" 
+                :foldersOnly="false" 
+              />
+            </div>
           </div>
         </template>
         <template #right>
-          <div class="h-full pl-1 md:pl-0">
-            <FileTree 
-              paneId="right" 
-              :allowMultiSelect="false" 
-              :foldersOnly="true" 
-            />
+          <div class="h-full pl-1 md:pl-0 flex flex-col">
+             <!-- Navigation Controls Right -->
+            <div class="flex items-center space-x-2 mb-2">
+              <button 
+                @click="store.goBack('right')" 
+                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                :disabled="store.rightHistoryIndex <= 0"
+                title="Back"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button 
+                @click="store.goForward('right')" 
+                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                :disabled="store.rightHistoryIndex >= store.rightHistory.length - 1"
+                title="Forward"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+              </button>
+              <div class="flex-grow overflow-hidden">
+                <Breadcrumbs paneId="right" />
+              </div>
+            </div>
+
+            <div class="flex-grow overflow-hidden border border-gray-200 rounded">
+              <FileTree 
+                paneId="right" 
+                :allowMultiSelect="false" 
+                :foldersOnly="true" 
+              />
+            </div>
           </div>
         </template>
       </SplitPane>
@@ -129,15 +195,12 @@ const progressMessage = computed(() => {
             <li 
               v-for="path in selectionList" 
               :key="path" 
-              class="text-sm font-mono text-gray-700 p-2 bg-white border border-gray-200 rounded shadow-sm hover:bg-gray-50 relative group"
-              :title="path"
+              class="text-sm font-mono text-gray-700 p-2 bg-white border border-gray-200 rounded shadow-sm hover:bg-gray-50 relative group cursor-default"
             >
-              {{ getFileName(path) }}
-              <div class="hidden group-hover:block absolute left-0 bottom-full mb-1 w-full z-10">
-                <div class="bg-gray-800 text-white text-xs rounded p-2 break-all shadow-lg mx-2">
-                  {{ path }}
-                </div>
-              </div>
+              <!-- Display Filename -->
+              <span class="block group-hover:hidden truncate">{{ getFileName(path) }}</span>
+              <!-- Display Full Path on Hover (Inline Replacement) -->
+              <span class="hidden group-hover:block text-xs bg-gray-100 p-1 rounded break-all">{{ path }}</span>
             </li>
           </ul>
           <div v-if="selectionList.length === 0" class="text-gray-500 text-center italic py-4">
@@ -158,6 +221,38 @@ const progressMessage = computed(() => {
           >
             Close
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div 
+      v-if="showHelpModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      @click.self="showHelpModal = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 animate-fade-in-up">
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+          <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Search Help
+        </h3>
+        <div class="space-y-4 text-sm text-gray-700">
+          <p>The <strong>Left Pane</strong> supports Regular Expressions (Regex) for advanced filtering.</p>
+          
+          <div class="bg-gray-50 p-3 rounded border">
+            <h4 class="font-semibold mb-2">Examples:</h4>
+            <ul class="list-disc pl-5 space-y-1">
+              <li><code>\.jpg$</code> - Find all JPG images</li>
+              <li><code>^report</code> - Files starting with "report"</li>
+              <li><code>test|demo</code> - Files containing "test" OR "demo"</li>
+              <li><code>\d{4}</code> - Files containing 4 digits (e.g., years)</li>
+            </ul>
+          </div>
+          
+          <p class="text-xs text-gray-500">Note: The <strong>Right Pane</strong> search uses exact matching for folder names.</p>
+        </div>
+        <div class="mt-6 text-right">
+          <button @click="showHelpModal = false" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Got it</button>
         </div>
       </div>
     </div>

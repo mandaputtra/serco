@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useFileSystemStore, type FileNode } from '@/stores/fileSystem'
 
 const props = defineProps<{
@@ -70,15 +70,42 @@ const matchesSearch = computed(() => {
   return hasMatchingChild(props.node, store.searchQuery, isRegex)
 })
 
-// Auto-expand
-watch(() => store.searchQuery, (newVal) => {
+// Auto-expand Logic
+const checkAutoExpand = (query: string) => {
   if (store.activePane !== props.paneId) return
   
   const isRegex = props.paneId === 'left'
-  if (newVal && hasMatchingChild(props.node, newVal, isRegex)) {
+  if (query && hasMatchingChild(props.node, query, isRegex)) {
     isOpen.value = true
-  } else if (!newVal) {
-    isOpen.value = false
+  } else if (!query) {
+    // Only close if it's NOT the root level (level 0 should usually stay open or respect user choice)
+    // Actually, if search is cleared, we might want to collapse deep nodes, but maybe keep root open?
+    // For now, consistent behavior: close if search cleared, unless level 0.
+    if (props.level > 0) {
+      isOpen.value = false
+    }
+  }
+}
+
+// Watch for search query changes
+watch(() => store.searchQuery, (newVal) => {
+  checkAutoExpand(newVal)
+})
+
+// Initial check on mount
+onMounted(async () => {
+  // Always expand level 0 (root) nodes
+  if (props.level === 0) {
+    isOpen.value = true
+    // If root doesn't have children loaded yet, load them
+    if (!props.node.children) {
+      await store.loadChildren(props.node)
+    }
+  }
+  
+  // Also check if existing search query requires expansion
+  if (store.searchQuery) {
+    checkAutoExpand(store.searchQuery)
   }
 })
 
@@ -99,6 +126,12 @@ const handleSelect = () => {
     if (props.node.isDir) {
       store.setRightSelection(props.node.path)
     }
+  }
+}
+
+const handleDoubleClick = async () => {
+  if (props.node.isDir) {
+    await store.navigateTo(props.node.path, props.paneId)
   }
 }
 
@@ -132,10 +165,12 @@ const formatDate = (dateStr: string) => {
       :class="{ 'opacity-60 italic': isHidden, 'bg-blue-50': isSelected }"
       :style="{ paddingLeft: `${level * 20 + 8}px` }"
       @click="toggleOpen"
+      @dblclick="handleDoubleClick"
     >
       <!-- Checkbox / Radio -->
       <div 
         @click.stop="handleSelect"
+        @dblclick.stop
         class="mr-3 flex items-center justify-center cursor-pointer"
       >
         <input 

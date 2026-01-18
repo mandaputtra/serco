@@ -27,6 +27,12 @@ export const useFileSystemStore = defineStore('fileSystem', {
     leftRoot: null as FileNode | null,
     rightRoot: null as FileNode | null,
 
+    // Navigation History
+    leftHistory: [] as string[],
+    leftHistoryIndex: -1,
+    rightHistory: [] as string[],
+    rightHistoryIndex: -1,
+
     // State
     isLoading: false,
     activePane: 'left' as 'left' | 'right',
@@ -54,9 +60,15 @@ export const useFileSystemStore = defineStore('fileSystem', {
       this.isLoading = true
       try {
         const homeDir = await GetHomeDir()
+        // Initialize Left Pane
         this.leftRoot = await ScanDirectory(homeDir)
-        // Initialize right pane to same dir initially or null
+        this.leftHistory = [homeDir]
+        this.leftHistoryIndex = 0
+
+        // Initialize Right Pane
         this.rightRoot = await ScanDirectory(homeDir)
+        this.rightHistory = [homeDir]
+        this.rightHistoryIndex = 0
       } catch (error) {
         console.error('Failed to init file system:', error)
       } finally {
@@ -79,6 +91,66 @@ export const useFileSystemStore = defineStore('fileSystem', {
         console.error(`Failed to load children for ${node.path}:`, error)
       } finally {
         node.isLoading = false
+      }
+    },
+
+    // Navigation Logic
+    async navigateTo(path: string, paneId: 'left' | 'right', addToHistory = true) {
+      this.isLoading = true
+      try {
+        const result = await ScanDirectory(path)
+        if (paneId === 'left') {
+          this.leftRoot = result
+          if (addToHistory) {
+            // If we are not at the end of history, truncate forward history
+            if (this.leftHistoryIndex < this.leftHistory.length - 1) {
+              this.leftHistory = this.leftHistory.slice(0, this.leftHistoryIndex + 1)
+            }
+            this.leftHistory.push(path)
+            this.leftHistoryIndex++
+          }
+        } else {
+          this.rightRoot = result
+          if (addToHistory) {
+             if (this.rightHistoryIndex < this.rightHistory.length - 1) {
+              this.rightHistory = this.rightHistory.slice(0, this.rightHistoryIndex + 1)
+            }
+            this.rightHistory.push(path)
+            this.rightHistoryIndex++
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to navigate to ${path}:`, error)
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async goBack(paneId: 'left' | 'right') {
+      if (paneId === 'left') {
+        if (this.leftHistoryIndex > 0) {
+          this.leftHistoryIndex--
+          await this.navigateTo(this.leftHistory[this.leftHistoryIndex], 'left', false)
+        }
+      } else {
+         if (this.rightHistoryIndex > 0) {
+          this.rightHistoryIndex--
+          await this.navigateTo(this.rightHistory[this.rightHistoryIndex], 'right', false)
+        }
+      }
+    },
+
+    async goForward(paneId: 'left' | 'right') {
+      if (paneId === 'left') {
+        if (this.leftHistoryIndex < this.leftHistory.length - 1) {
+          this.leftHistoryIndex++
+          await this.navigateTo(this.leftHistory[this.leftHistoryIndex], 'left', false)
+        }
+      } else {
+        if (this.rightHistoryIndex < this.rightHistory.length - 1) {
+          this.rightHistoryIndex++
+          await this.navigateTo(this.rightHistory[this.rightHistoryIndex], 'right', false)
+        }
       }
     },
 
