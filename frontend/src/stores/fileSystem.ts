@@ -37,6 +37,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
     isLoading: false,
     activePane: 'left' as 'left' | 'right',
     showHiddenFiles: false,
+    isDarkMode: localStorage.getItem('darkMode') === 'true',
 
     // Selections
     selectedLeft: new Set<string>(), // Multi-select
@@ -58,6 +59,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
   actions: {
     async init() {
       this.isLoading = true
+      this.applyTheme()
       try {
         const homeDir = await GetHomeDir()
         // Initialize Left Pane
@@ -73,6 +75,20 @@ export const useFileSystemStore = defineStore('fileSystem', {
         console.error('Failed to init file system:', error)
       } finally {
         this.isLoading = false
+      }
+    },
+
+    toggleDarkMode() {
+      this.isDarkMode = !this.isDarkMode
+      localStorage.setItem('darkMode', String(this.isDarkMode))
+      this.applyTheme()
+    },
+
+    applyTheme() {
+      if (this.isDarkMode) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
       }
     },
 

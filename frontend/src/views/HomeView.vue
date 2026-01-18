@@ -3,7 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useFileSystemStore } from '@/stores/fileSystem'
 import FileTree from '@/components/FileTree.vue'
 import SplitPane from '@/components/SplitPane.vue'
-import Toolbar from '@/components/Toolbar.vue'
+import Toolbar from '@/components/ToolBar.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 const store = useFileSystemStore()
@@ -51,9 +51,9 @@ const progressMessage = computed(() => {
 </script>
 
 <template>
-  <div class="home h-full flex flex-col bg-gray-50 relative">
+  <div class="home h-full flex flex-col bg-gray-50 dark:bg-gray-900 relative transition-colors duration-200">
     <!-- Header Area -->
-    <div class="flex-none p-4 bg-white border-b shadow-sm space-y-3 z-20">
+    <div class="flex-none p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm space-y-3 z-20">
       
       <!-- Search Bar Row -->
       <div class="flex items-center space-x-2">
@@ -63,11 +63,11 @@ const progressMessage = computed(() => {
             v-model="store.searchQuery"
             type="text" 
             :placeholder="searchPlaceholder"
-            class="w-full h-full pl-11 pr-4 py-2 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-            :class="{ 'ring-2 ring-blue-100 border-blue-400': store.activePane === 'left', 'ring-2 ring-green-100 border-green-400': store.activePane === 'right' }"
+            class="w-full h-full pl-11 pr-4 py-2 text-base rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500"
+            :class="{ 'ring-2 ring-blue-100 dark:ring-blue-900 border-blue-400 dark:border-blue-500': store.activePane === 'left', 'ring-2 ring-green-100 dark:ring-green-900 border-green-400 dark:border-green-500': store.activePane === 'right' }"
             :disabled="store.isCopying"
           />
-          <span class="absolute left-3.5 top-3.5 text-gray-400">
+          <span class="absolute left-3.5 top-3.5 text-gray-400 dark:text-gray-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -77,7 +77,7 @@ const progressMessage = computed(() => {
         <!-- Help Button -->
         <button 
           @click="showHelpModal = true"
-          class="h-12 w-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          class="h-12 w-12 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-600 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
           title="Search Help"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,9 +86,26 @@ const progressMessage = computed(() => {
         </button>
       </div>
 
-      <!-- Toolbar (10px spacing below search) -->
-      <div class="pt-[10px]">
+      <!-- Dark Mode Toggle & Toolbar Row -->
+      <div class="flex items-center justify-between pt-[10px]">
+        <!-- Toolbar -->
         <Toolbar @show-selection="showSelectionModal = true" />
+        
+        <!-- Dark Mode Toggle -->
+        <button
+          @click="store.toggleDarkMode()"
+          class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          :title="store.isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+        >
+          <!-- Sun Icon (for Dark Mode) -->
+          <svg v-if="store.isDarkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <!-- Moon Icon (for Light Mode) -->
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -105,7 +122,7 @@ const progressMessage = computed(() => {
             <div class="flex items-center space-x-2 mb-2">
               <button 
                 @click="store.goBack('left')" 
-                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-30 disabled:hover:bg-transparent"
                 :disabled="store.leftHistoryIndex <= 0"
                 title="Back"
               >
@@ -113,7 +130,7 @@ const progressMessage = computed(() => {
               </button>
               <button 
                 @click="store.goForward('left')" 
-                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-30 disabled:hover:bg-transparent"
                 :disabled="store.leftHistoryIndex >= store.leftHistory.length - 1"
                 title="Forward"
               >
@@ -124,7 +141,7 @@ const progressMessage = computed(() => {
               </div>
             </div>
 
-            <div class="flex-grow overflow-hidden border border-gray-200 rounded">
+            <div class="flex-grow overflow-hidden border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
                <FileTree 
                 paneId="left" 
                 :allowMultiSelect="true" 
@@ -139,7 +156,7 @@ const progressMessage = computed(() => {
             <div class="flex items-center space-x-2 mb-2">
               <button 
                 @click="store.goBack('right')" 
-                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-30 disabled:hover:bg-transparent"
                 :disabled="store.rightHistoryIndex <= 0"
                 title="Back"
               >
@@ -147,7 +164,7 @@ const progressMessage = computed(() => {
               </button>
               <button 
                 @click="store.goForward('right')" 
-                class="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-30 disabled:hover:bg-transparent"
                 :disabled="store.rightHistoryIndex >= store.rightHistory.length - 1"
                 title="Forward"
               >
@@ -158,7 +175,7 @@ const progressMessage = computed(() => {
               </div>
             </div>
 
-            <div class="flex-grow overflow-hidden border border-gray-200 rounded">
+            <div class="flex-grow overflow-hidden border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
               <FileTree 
                 paneId="right" 
                 :allowMultiSelect="false" 
@@ -173,7 +190,7 @@ const progressMessage = computed(() => {
     <!-- Toast Notification -->
     <div 
       v-if="store.showToast"
-      class="fixed bottom-8 right-8 bg-gray-800 text-white px-4 py-2 rounded shadow-lg z-50 text-sm font-medium transition-opacity duration-300"
+      class="fixed bottom-8 right-8 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded shadow-lg z-50 text-sm font-medium transition-opacity duration-300"
     >
       {{ store.clipboardMessage }}
     </div>
@@ -184,34 +201,34 @@ const progressMessage = computed(() => {
       class="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50 transition-opacity"
       @click.self="showSelectionModal = false"
     >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-lg flex flex-col max-h-[80vh] transform transition-all scale-100">
-        <div class="p-4 border-b flex justify-between items-center">
-          <h3 class="font-bold text-lg text-gray-800">Selected Files ({{ store.selectedLeft.size }})</h3>
-          <button @click="showSelectionModal = false" class="text-gray-500 hover:text-gray-700 focus:outline-none">✕</button>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col max-h-[80vh] transform transition-all scale-100">
+        <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-white">Selected Files ({{ store.selectedLeft.size }})</h3>
+          <button @click="showSelectionModal = false" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none">✕</button>
         </div>
         
-        <div class="flex-grow overflow-auto p-4 bg-gray-50">
+        <div class="flex-grow overflow-auto p-4 bg-gray-50 dark:bg-gray-900">
           <ul class="space-y-1">
             <li 
               v-for="path in selectionList" 
               :key="path" 
-              class="text-sm font-mono text-gray-700 p-2 bg-white border border-gray-200 rounded shadow-sm hover:bg-gray-50 relative group cursor-default"
+              class="text-sm font-mono text-gray-700 dark:text-gray-300 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 relative group cursor-default"
             >
               <!-- Display Filename -->
               <span class="block group-hover:hidden truncate">{{ getFileName(path) }}</span>
               <!-- Display Full Path on Hover (Inline Replacement) -->
-              <span class="hidden group-hover:block text-xs bg-gray-100 p-1 rounded break-all">{{ path }}</span>
+              <span class="hidden group-hover:block text-xs bg-gray-100 dark:bg-gray-600 p-1 rounded break-all">{{ path }}</span>
             </li>
           </ul>
-          <div v-if="selectionList.length === 0" class="text-gray-500 text-center italic py-4">
+          <div v-if="selectionList.length === 0" class="text-gray-500 dark:text-gray-400 text-center italic py-4">
             No files selected.
           </div>
         </div>
 
-        <div class="p-4 border-t bg-gray-50 flex justify-end space-x-2">
+        <div class="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-end space-x-2">
           <button 
             @click="clearSelection" 
-            class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded border border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+            class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded border border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             Clear Selection
           </button>
@@ -231,15 +248,15 @@ const progressMessage = computed(() => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
       @click.self="showHelpModal = false"
     >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 animate-fade-in-up">
-        <h3 class="text-xl font-bold mb-4 flex items-center">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 animate-fade-in-up">
+        <h3 class="text-xl font-bold mb-4 flex items-center text-gray-900 dark:text-white">
           <svg class="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Search Help
         </h3>
-        <div class="space-y-4 text-sm text-gray-700">
+        <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
           <p>The <strong>Left Pane</strong> supports Regular Expressions (Regex) for advanced filtering.</p>
           
-          <div class="bg-gray-50 p-3 rounded border">
+          <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded border dark:border-gray-600">
             <h4 class="font-semibold mb-2">Examples:</h4>
             <ul class="list-disc pl-5 space-y-1">
               <li><code>\.jpg$</code> - Find all JPG images</li>
@@ -249,7 +266,7 @@ const progressMessage = computed(() => {
             </ul>
           </div>
           
-          <p class="text-xs text-gray-500">Note: The <strong>Right Pane</strong> search uses exact matching for folder names.</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Note: The <strong>Right Pane</strong> search uses exact matching for folder names.</p>
         </div>
         <div class="mt-6 text-right">
           <button @click="showHelpModal = false" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Got it</button>
@@ -263,9 +280,9 @@ const progressMessage = computed(() => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm"
       @click.self="store.cancelCopy"
     >
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-fade-in-up">
-        <div class="p-5 border-b bg-gray-50">
-          <h3 class="font-bold text-lg text-gray-800 flex items-center">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-fade-in-up">
+        <div class="p-5 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-white flex items-center">
             <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
             </svg>
@@ -273,36 +290,36 @@ const progressMessage = computed(() => {
           </h3>
         </div>
         
-        <div class="p-5 space-y-4">
+        <div class="p-5 space-y-4 text-gray-800 dark:text-gray-200">
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Destination</label>
-            <div class="text-sm font-mono bg-blue-50 p-2 rounded border border-blue-100 text-blue-800 break-all">
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Destination</label>
+            <div class="text-sm font-mono bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 text-blue-800 dark:text-blue-200 break-all">
               {{ store.selectedRight }}
             </div>
           </div>
           
           <div>
-             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+             <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                Files to Copy ({{ store.selectedLeft.size }})
              </label>
-             <div class="max-h-40 overflow-auto border rounded bg-gray-50 p-2">
+             <div class="max-h-40 overflow-auto border dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 p-2">
                <ul class="space-y-1">
-                 <li v-for="path in selectionList" :key="path" class="text-xs font-mono text-gray-600 break-all truncate">
+                 <li v-for="path in selectionList" :key="path" class="text-xs font-mono text-gray-600 dark:text-gray-400 break-all truncate">
                    {{ getFileName(path) }}
                  </li>
                </ul>
              </div>
           </div>
           
-          <div class="text-sm text-gray-600">
+          <div class="text-sm text-gray-600 dark:text-gray-400">
             Are you sure you want to proceed with this operation?
           </div>
         </div>
 
-        <div class="p-4 border-t bg-gray-50 flex justify-end space-x-3">
+        <div class="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex justify-end space-x-3">
           <button 
             @click="store.cancelCopy" 
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             Cancel
           </button>
@@ -321,7 +338,7 @@ const progressMessage = computed(() => {
       v-if="store.isCopying"
       class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm cursor-wait"
     >
-      <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md text-center">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md text-center">
         <div class="mb-6 relative inline-block">
           <svg class="animate-spin h-12 w-12 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -329,17 +346,17 @@ const progressMessage = computed(() => {
           </svg>
         </div>
         
-        <h3 class="text-xl font-bold text-gray-800 mb-2">Processing...</h3>
-        <p class="text-gray-500 text-sm mb-6">{{ progressMessage }}</p>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2">Processing...</h3>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">{{ progressMessage }}</p>
         
         <!-- Progress Bar -->
-        <div class="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-2 overflow-hidden">
           <div 
             class="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out"
             :style="{ width: `${progressPercent}%` }"
           ></div>
         </div>
-        <div class="text-right text-xs text-gray-500 font-mono">{{ progressPercent }}%</div>
+        <div class="text-right text-xs text-gray-500 dark:text-gray-400 font-mono">{{ progressPercent }}%</div>
       </div>
     </div>
 

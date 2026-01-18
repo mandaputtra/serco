@@ -154,8 +154,11 @@ const formatDate = (dateStr: string) => {
 <template>
   <div v-if="isVisible && matchesSearch" class="file-node select-none">
     <div
-      class="flex items-center p-2 hover:bg-gray-100 cursor-pointer text-sm border-b border-gray-50 transition-colors duration-150"
-      :class="{ 'opacity-60 italic': isHidden, 'bg-blue-50': isSelected }"
+      class="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm border-b border-gray-50 dark:border-gray-700 transition-colors duration-150"
+      :class="{
+        'opacity-60 italic': isHidden,
+        'bg-blue-50 dark:bg-blue-900/30': isSelected,
+      }"
       :style="{ paddingLeft: `${level * 20 + 8}px` }"
       @click="toggleOpen"
       @dblclick="handleDoubleClick"
@@ -170,13 +173,13 @@ const formatDate = (dateStr: string) => {
           v-if="paneId === 'left'"
           type="checkbox"
           :checked="isSelected"
-          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
         />
         <input
           v-else-if="node.isDir"
           type="radio"
           :checked="isSelected"
-          class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+          class="h-4 w-4 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
         />
         <span v-else class="w-4"></span>
       </div>
@@ -184,11 +187,11 @@ const formatDate = (dateStr: string) => {
       <!-- Expand/Collapse Icon -->
       <span
         v-if="node.isDir"
-        class="mr-2 w-4 text-center text-gray-500 font-mono"
+        class="mr-2 w-4 text-center text-gray-500 dark:text-gray-400 font-mono"
       >
         <template v-if="node.isLoading">
           <svg
-            class="animate-spin h-3 w-3 text-gray-500 inline"
+            class="animate-spin h-3 w-3 text-gray-500 dark:text-gray-400 inline"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -218,14 +221,15 @@ const formatDate = (dateStr: string) => {
       <span class="mr-2 text-lg">{{ node.isDir ? '📁' : '📄' }}</span>
 
       <!-- Name -->
-      <span class="flex-grow truncate mr-4 font-medium text-gray-700">{{
-        node.name
-      }}</span>
+      <span
+        class="flex-grow truncate mr-4 font-medium text-gray-700 dark:text-gray-200"
+        >{{ node.name }}</span
+      >
 
       <!-- Metadata (Desktop only) -->
       <div
         v-if="!foldersOnly"
-        class="hidden md:flex gap-4 text-gray-500 text-xs whitespace-nowrap items-center"
+        class="hidden md:flex gap-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap items-center"
       >
         <span class="w-20 text-right">{{ formatSize(node.size) }}</span>
         <span class="w-40 text-right">{{ formatDate(node.modTime) }}</span>

@@ -24,22 +24,31 @@ const handlePaneClick = () => {
 
 <template>
   <div 
-    class="file-tree w-full h-full flex flex-col bg-white border transition-colors duration-200"
+    class="file-tree w-full h-full flex flex-col transition-colors duration-200 rounded-lg overflow-hidden border"
     :class="[
-      isActive ? 'border-2 border-blue-500 bg-blue-50/10' : 'border border-gray-200'
+      isActive 
+        ? 'bg-white dark:bg-gray-800 border-blue-400 dark:border-blue-500 ring-1 ring-blue-100 dark:ring-blue-900 shadow-md' 
+        : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-80 hover:opacity-100'
     ]"
     @click.capture="handlePaneClick"
   >
     <!-- Pane Header -->
-    <div class="flex items-center p-3 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase tracking-wider">
-      <div class="w-8 text-center">{{ paneId === 'left' ? 'L' : 'R' }}</div>
+    <div 
+      class="flex items-center p-3 border-b text-xs font-semibold uppercase tracking-wider transition-colors duration-200"
+      :class="[
+        isActive
+          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+      ]"
+    >
+      <div class="w-8 text-center opacity-70">{{ paneId === 'left' ? 'L' : 'R' }}</div>
       <div class="flex-grow pl-2">{{ paneId === 'left' ? 'File Browser' : 'Destination' }}</div>
       <div v-if="!foldersOnly" class="hidden md:block w-20 text-right mr-4">Size</div>
       <div v-if="!foldersOnly" class="hidden md:block w-40 text-right">Modified</div>
     </div>
     
     <!-- Loading State -->
-    <div v-if="store.isLoading && !rootNode" class="flex-grow flex items-center justify-center p-8 text-gray-500">
+    <div v-if="store.isLoading && !rootNode" class="flex-grow flex items-center justify-center p-8 text-gray-500 dark:text-gray-400">
       <div class="flex flex-col items-center">
         <svg class="animate-spin h-8 w-8 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -50,7 +59,7 @@ const handlePaneClick = () => {
     </div>
 
     <!-- Tree Content -->
-    <div v-else-if="rootNode" class="overflow-auto flex-grow relative">
+    <div v-else-if="rootNode" class="overflow-auto flex-grow relative scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
       <FileNode 
         :node="rootNode" 
         :level="0" 
@@ -61,7 +70,7 @@ const handlePaneClick = () => {
     </div>
 
     <!-- Error/Empty State -->
-    <div v-else class="p-8 text-center text-red-500">
+    <div v-else class="p-8 text-center text-red-500 dark:text-red-400">
       Not loaded.
     </div>
   </div>

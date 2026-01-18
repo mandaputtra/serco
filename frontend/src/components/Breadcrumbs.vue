@@ -51,7 +51,7 @@ const navigateTo = (path: string) => {
 </script>
 
 <template>
-  <div class="flex items-center text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-200 overflow-x-auto whitespace-nowrap">
+  <div class="flex items-center text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-700 overflow-x-auto whitespace-nowrap transition-colors duration-200">
     <div 
       v-for="(item, index) in parts" 
       :key="item.path"
@@ -59,12 +59,12 @@ const navigateTo = (path: string) => {
     >
       <span 
         v-if="index > 0" 
-        class="mx-1 text-gray-400"
+        class="mx-1 text-gray-400 dark:text-gray-500"
       >/</span>
       <span 
         @click="navigateTo(item.path)"
-        class="cursor-pointer hover:text-blue-600 hover:underline px-1 rounded hover:bg-gray-100"
-        :class="{ 'font-semibold text-gray-800': index === parts.length - 1 }"
+        class="cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline px-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+        :class="{ 'font-semibold text-gray-800 dark:text-gray-100': index === parts.length - 1 }"
       >
         {{ item.name }}
       </span>
