@@ -50,19 +50,6 @@ const openWebsite = () => {
           <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">License</h2>
           <div class="bg-gray-50 p-4 rounded-lg border text-sm text-gray-600 font-mono max-h-64 overflow-y-auto">
             <p class="mb-2 font-bold">MIT License</p>
-            <p class="mb-2">Copyright (c) 2024 Manda Putra</p>
-            <p>
-              Permission is hereby granted, free of charge, to any person obtaining a copy
-              of this software and associated documentation files (the "Software"), to deal
-              in the Software without restriction, including without limitation the rights
-              to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-              copies of the Software, and to permit persons to whom the Software is
-              furnished to do so, subject to the following conditions:
-            </p>
-            <p class="mt-2">
-              The above copyright notice and this permission notice shall be included in all
-              copies or substantial portions of the Software.
-            </p>
           </div>
         </div>
       </div>

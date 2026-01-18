@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useFileSystemStore, type FileNode } from '@/stores/fileSystem'
+import { checkMatch } from '@/utils/search'
 
 const props = defineProps<{
   node: FileNode
@@ -19,10 +20,8 @@ const isHidden = computed(() => props.node.name.startsWith('.'))
 const isVisible = computed(() => {
   // Hide if foldersOnly is true and this is a file
   if (props.foldersOnly && !props.node.isDir) return false
-  
   // Hide hidden files if not enabled
   if (isHidden.value && !store.showHiddenFiles) return false
-  
   return true
 })
 
@@ -36,22 +35,6 @@ const hasMatchingChild = (node: FileNode, query: string, isRegex: boolean): bool
     
     return checkMatch(child.name, query, isRegex) || hasMatchingChild(child, query, isRegex)
   })
-}
-
-const checkMatch = (name: string, query: string, isRegex: boolean) => {
-  if (!query) return true
-  if (isRegex) {
-    try {
-      return new RegExp(query, 'i').test(name)
-    } catch {
-      return name.toLowerCase().includes(query.toLowerCase())
-    }
-  } else {
-    // Exact match case sensitive for folders (right pane) per requirements?
-    // "Right pane active: Search filters folders (exact match, case-sensitive)"
-    // That's quite strict, maybe startsWith is better? Implementing exact match as requested.
-    return name === query
-  }
 }
 
 const matchesSearch = computed(() => {

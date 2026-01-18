@@ -48,7 +48,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
     // Clipboard Status
     clipboardMessage: '',
     showToast: false,
-    
+
     // Copy Operation State
     showCopyConfirm: false,
     isCopying: false,
@@ -112,7 +112,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
         } else {
           this.rightRoot = result
           if (addToHistory) {
-             if (this.rightHistoryIndex < this.rightHistory.length - 1) {
+            if (this.rightHistoryIndex < this.rightHistory.length - 1) {
               this.rightHistory = this.rightHistory.slice(0, this.rightHistoryIndex + 1)
             }
             this.rightHistory.push(path)
@@ -133,7 +133,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
           await this.navigateTo(this.leftHistory[this.leftHistoryIndex], 'left', false)
         }
       } else {
-         if (this.rightHistoryIndex > 0) {
+        if (this.rightHistoryIndex > 0) {
           this.rightHistoryIndex--
           await this.navigateTo(this.rightHistory[this.rightHistoryIndex], 'right', false)
         }
@@ -183,7 +183,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
         // However, auto-loading everything recursively can be slow. 
         // For now, we only recurse if children are already present to avoid accidental massive scans.
         // Or we could force load. Let's stick to loaded children to be safe, or just what's in memory.
-        
+
         if (node.children) {
           node.children.forEach(child => this.toggleRecursive(child, isSelected))
         }
@@ -241,7 +241,7 @@ export const useFileSystemStore = defineStore('fileSystem', {
 
       try {
         const srcPaths = Array.from(this.selectedLeft)
-        await CopyFiles(srcPaths, this.selectedRight)
+        await CopyFiles(srcPaths, String(this.selectedRight))
         this.showToastNotification("Files copied successfully")
         this.clearSelection() // Clear selection after successful copy
       } catch (e: any) {
