@@ -1,7 +1,7 @@
 # Serco (Search and Copy)
 
 ## Overview
-This is a desktop application built using [Wails](https://wails.io/), which combines the power of Go for the backend and Vue.js for the frontend.
+To help my friend select files and copy them better. This is a desktop application built using [Wails](https://wails.io/), which combines the power of Go for the backend and Vue.js for the frontend. 99% AI Generated Vibe Coding.
 
 ## Prerequisites
 Before running the project, ensure you have the following installed:
