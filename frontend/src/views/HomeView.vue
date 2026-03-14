@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { useFileSystemStore } from '@/stores/fileSystem'
 import FileTree from '@/components/FileTree.vue'
 import SplitPane from '@/components/SplitPane.vue'
@@ -11,8 +11,81 @@ const store = useFileSystemStore()
 const showSelectionModal = ref(false)
 const showHelpModal = ref(false)
 
+// Keyboard shortcuts handler
+const handleKeyDown = (e: KeyboardEvent) => {
+  // Don't trigger shortcuts when copying or when typing in input fields
+  if (store.isCopying) return
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    // Allow Escape even in inputs
+    if (e.key !== 'Escape') return
+  }
+
+  // Escape: Close modals or clear selection
+  if (e.key === 'Escape') {
+    if (showHelpModal.value) {
+      showHelpModal.value = false
+    } else if (showSelectionModal.value) {
+      showSelectionModal.value = false
+    } else if (store.showCopyConfirm) {
+      store.cancelCopy()
+    } else if (store.selectedLeft.size > 0) {
+      store.clearSelection()
+    }
+    return
+  }
+
+  // Ctrl/Cmd + A: Select all visible files in left pane
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+    e.preventDefault()
+    if (store.activePane === 'left' && store.leftRoot?.children) {
+      store.leftRoot.children.forEach(child => {
+        if (!child.isDir) {
+          store.selectedLeft.add(child.path)
+        }
+      })
+    }
+    return
+  }
+
+  // F5: Refresh current directory
+  if (e.key === 'F5') {
+    e.preventDefault()
+    const currentRoot = store.activePane === 'left' ? store.leftRoot : store.rightRoot
+    if (currentRoot) {
+      store.navigateTo(currentRoot.path, store.activePane, false)
+    }
+    return
+  }
+
+  // Delete: Clear selection
+  if (e.key === 'Delete') {
+    store.clearSelection()
+    return
+  }
+
+  // Ctrl/Cmd + C: Copy paths (when not in input)
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+    if (store.selectedLeft.size > 0) {
+      store.copyToClipboard()
+    }
+    return
+  }
+
+  // Ctrl/Cmd + ?: Show help
+  if ((e.ctrlKey || e.metaKey) && e.key === '?') {
+    e.preventDefault()
+    showHelpModal.value = true
+    return
+  }
+}
+
 onMounted(() => {
   store.init()
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
 })
 
 const selectionList = computed(() => Array.from(store.selectedLeft))
@@ -465,6 +538,34 @@ const handlePaste = (e: ClipboardEvent) => {
                 <strong>Paste Support</strong>: Paste a list of filenames (one
                 per line) to automatically convert them into a comma-separated
                 search.
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="bg-gray-50 dark:bg-gray-700 p-3 rounded border dark:border-gray-600"
+          >
+            <h4 class="font-semibold mb-2">Keyboard Shortcuts:</h4>
+            <ul class="space-y-1 text-xs">
+              <li class="flex justify-between">
+                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Ctrl</kbd> + <kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">A</kbd></span>
+                <span>Select all files</span>
+              </li>
+              <li class="flex justify-between">
+                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Ctrl</kbd> + <kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">C</kbd></span>
+                <span>Copy selected paths</span>
+              </li>
+              <li class="flex justify-between">
+                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">F5</kbd></span>
+                <span>Refresh current directory</span>
+              </li>
+              <li class="flex justify-between">
+                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Delete</kbd></span>
+                <span>Clear selection</span>
+              </li>
+              <li class="flex justify-between">
+                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Esc</kbd></span>
+                <span>Close modals / Clear selection</span>
               </li>
             </ul>
           </div>

@@ -1,7 +1,5 @@
 import { defineStore } from 'pinia'
-// @ts-ignore
 import { GetHomeDir, ScanDirectory, CopyFiles } from '../../wailsjs/go/main/App'
-// @ts-ignore
 import { ClipboardSetText, EventsOn, EventsOff } from '../../wailsjs/runtime'
 
 export interface FileNode {
@@ -110,6 +108,39 @@ export const useFileSystemStore = defineStore('fileSystem', {
       }
     },
 
+    // History Management Helpers
+    _getHistoryState(paneId: 'left' | 'right') {
+      return paneId === 'left'
+        ? { history: this.leftHistory, index: this.leftHistoryIndex }
+        : { history: this.rightHistory, index: this.rightHistoryIndex }
+    },
+
+    _updateHistoryState(
+      paneId: 'left' | 'right',
+      newHistory: string[],
+      newIndex: number
+    ) {
+      if (paneId === 'left') {
+        this.leftHistory = newHistory
+        this.leftHistoryIndex = newIndex
+      } else {
+        this.rightHistory = newHistory
+        this.rightHistoryIndex = newIndex
+      }
+    },
+
+    _addToHistory(paneId: 'left' | 'right', path: string) {
+      const { history, index } = this._getHistoryState(paneId)
+      
+      // If we are not at the end of history, truncate forward history
+      const newHistory = index < history.length - 1 
+        ? history.slice(0, index + 1) 
+        : [...history]
+      
+      newHistory.push(path)
+      this._updateHistoryState(paneId, newHistory, newHistory.length - 1)
+    },
+
     // Navigation Logic
     async navigateTo(
       path: string,
@@ -121,29 +152,12 @@ export const useFileSystemStore = defineStore('fileSystem', {
         const result = await ScanDirectory(path)
         if (paneId === 'left') {
           this.leftRoot = result
-          if (addToHistory) {
-            // If we are not at the end of history, truncate forward history
-            if (this.leftHistoryIndex < this.leftHistory.length - 1) {
-              this.leftHistory = this.leftHistory.slice(
-                0,
-                this.leftHistoryIndex + 1
-              )
-            }
-            this.leftHistory.push(path)
-            this.leftHistoryIndex++
-          }
         } else {
           this.rightRoot = result
-          if (addToHistory) {
-            if (this.rightHistoryIndex < this.rightHistory.length - 1) {
-              this.rightHistory = this.rightHistory.slice(
-                0,
-                this.rightHistoryIndex + 1
-              )
-            }
-            this.rightHistory.push(path)
-            this.rightHistoryIndex++
-          }
+        }
+        
+        if (addToHistory) {
+          this._addToHistory(paneId, path)
         }
       } catch (error) {
         console.error(`Failed to navigate to ${path}:`, error)
@@ -153,46 +167,20 @@ export const useFileSystemStore = defineStore('fileSystem', {
     },
 
     async goBack(paneId: 'left' | 'right') {
-      if (paneId === 'left') {
-        if (this.leftHistoryIndex > 0) {
-          this.leftHistoryIndex--
-          await this.navigateTo(
-            this.leftHistory[this.leftHistoryIndex],
-            'left',
-            false
-          )
-        }
-      } else {
-        if (this.rightHistoryIndex > 0) {
-          this.rightHistoryIndex--
-          await this.navigateTo(
-            this.rightHistory[this.rightHistoryIndex],
-            'right',
-            false
-          )
-        }
+      const { history, index } = this._getHistoryState(paneId)
+      if (index > 0) {
+        const newIndex = index - 1
+        this._updateHistoryState(paneId, history, newIndex)
+        await this.navigateTo(history[newIndex], paneId, false)
       }
     },
 
     async goForward(paneId: 'left' | 'right') {
-      if (paneId === 'left') {
-        if (this.leftHistoryIndex < this.leftHistory.length - 1) {
-          this.leftHistoryIndex++
-          await this.navigateTo(
-            this.leftHistory[this.leftHistoryIndex],
-            'left',
-            false
-          )
-        }
-      } else {
-        if (this.rightHistoryIndex < this.rightHistory.length - 1) {
-          this.rightHistoryIndex++
-          await this.navigateTo(
-            this.rightHistory[this.rightHistoryIndex],
-            'right',
-            false
-          )
-        }
+      const { history, index } = this._getHistoryState(paneId)
+      if (index < history.length - 1) {
+        const newIndex = index + 1
+        this._updateHistoryState(paneId, history, newIndex)
+        await this.navigateTo(history[newIndex], paneId, false)
       }
     },
 
