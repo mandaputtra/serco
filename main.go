@@ -82,8 +82,8 @@ func main() {
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  true,
 			About: &mac.AboutInfo{
-				Title:   "Wails Template Vue",
-				Message: "A Wails template based on Vue and Vue-Router",
+				Title:   "Serco",
+				Message: "A modern file search and copy tool for efficient file management",
 				Icon:    icon,
 			},
 		},

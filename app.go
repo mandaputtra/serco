@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -115,8 +116,7 @@ func (a *App) ScanDirectory(path string) (*FileNode, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		runtime.LogErrorf(a.ctx, "Failed to read dir %s: %v", path, err)
-		// Return what we have so far
-		return root, nil
+		return nil, fmt.Errorf("failed to read directory %s: %v", path, err)
 	}
 
 	// Sort entries: directories first, then files
@@ -152,9 +152,60 @@ func (a *App) ScanDirectory(path string) (*FileNode, error) {
 	return root, nil
 }
 
-// SearchFiles searches for files matching the query within the given root path (recursive with depth limit)
+// SearchFiles searches for files matching the query within the given root path (recursive)
 func (a *App) SearchFiles(query string, rootPath string) ([]*FileNode, error) {
+	runtime.LogDebugf(a.ctx, "Searching for '%s' in %s", query, rootPath)
+
 	var results []*FileNode
+
+	// Validate root path
+	rootInfo, err := os.Stat(rootPath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid root path: %v", err)
+	}
+	if !rootInfo.IsDir() {
+		return nil, fmt.Errorf("root path is not a directory")
+	}
+
+	// Walk directory tree
+	err = filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			// Log error but continue walking
+			runtime.LogErrorf(a.ctx, "Error accessing %s: %v", path, err)
+			return nil
+		}
+
+		// Skip root directory itself
+		if path == rootPath {
+			return nil
+		}
+
+		// Check if name matches query (case-insensitive substring match)
+		if strings.Contains(strings.ToLower(d.Name()), strings.ToLower(query)) {
+			info, err := d.Info()
+			if err != nil {
+				runtime.LogErrorf(a.ctx, "Failed to get info for %s: %v", path, err)
+				return nil
+			}
+
+			node := &FileNode{
+				Name:    d.Name(),
+				Path:    path,
+				IsDir:   d.IsDir(),
+				Size:    info.Size(),
+				ModTime: info.ModTime().Format(time.RFC3339),
+			}
+			results = append(results, node)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %v", err)
+	}
+
+	runtime.LogDebugf(a.ctx, "Search complete. Found %d matches.", len(results))
 	return results, nil
 }
 
@@ -219,8 +270,7 @@ func (a *App) CopyFiles(srcPaths []string, destDir string) error {
 			}
 		}
 		
-		// Sleep briefly to let UI update for small files
-		time.Sleep(50 * time.Millisecond)
+		// Progress events are handled by frontend, no artificial delay needed
 	}
 
 	// Emit 100% completion
@@ -235,7 +285,16 @@ func (a *App) CopyFiles(srcPaths []string, destDir string) error {
 }
 
 // copyFile copies a single file from src to dst, preserving mod time
+// If dst already exists, it will be overwritten
 func copyFile(src, dst string, info os.FileInfo) error {
+	// Check if destination already exists
+	if _, err := os.Stat(dst); err == nil {
+		// File exists - remove it first to ensure clean overwrite
+		if err := os.Remove(dst); err != nil {
+			return fmt.Errorf("failed to remove existing file %s: %v", dst, err)
+		}
+	}
+
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -251,6 +310,11 @@ func copyFile(src, dst string, info os.FileInfo) error {
 	_, err = io.Copy(out, in)
 	if err != nil {
 		return err
+	}
+
+	// Preserve file permissions from source
+	if err := os.Chmod(dst, info.Mode()); err != nil {
+		return fmt.Errorf("failed to set permissions on %s: %v", dst, err)
 	}
 
 	return os.Chtimes(dst, time.Now(), info.ModTime())
