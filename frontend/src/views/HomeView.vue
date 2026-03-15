@@ -5,6 +5,11 @@ import FileTree from '@/components/FileTree.vue'
 import SplitPane from '@/components/SplitPane.vue'
 import ToolBar from '@/components/ToolBar.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import ToastNotification from '@/components/ToastNotification.vue'
+import HelpModal from '@/components/modals/HelpModal.vue'
+import SelectionModal from '@/components/modals/SelectionModal.vue'
+import CopyConfirmModal from '@/components/modals/CopyConfirmModal.vue'
+import ProgressOverlay from '@/components/modals/ProgressOverlay.vue'
 
 const store = useFileSystemStore()
 
@@ -88,19 +93,6 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
 })
 
-const selectionList = computed(() => Array.from(store.selectedLeft))
-
-const getFileName = (path: string) => {
-  // Handle both Windows (\) and Unix (/) paths
-  const separator = path.includes('\\') ? '\\' : '/'
-  return path.split(separator).pop() || path
-}
-
-const clearSelection = () => {
-  store.clearSelection()
-  showSelectionModal.value = false
-}
-
 // Search Placeholder logic based on active pane
 const searchPlaceholder = computed(() => {
   if (store.activePane === 'left') {
@@ -108,18 +100,6 @@ const searchPlaceholder = computed(() => {
   } else {
     return 'Search destination folders (Exact match)...'
   }
-})
-
-// Progress helpers
-const progressPercent = computed(() => {
-  if (!store.copyProgress) return 0
-  return store.copyProgress.percentage.toFixed(1)
-})
-
-const progressMessage = computed(() => {
-  if (!store.copyProgress) return ''
-  if (store.copyProgress.percentage === 100) return 'Complete'
-  return `Copying ${store.copyProgress.currentFile} (${store.copyProgress.filesDone}/${store.copyProgress.totalFiles})`
 })
 
 // Handle Paste for multi-line search inputs
@@ -150,6 +130,11 @@ const handlePaste = (e: ClipboardEvent) => {
       )
     }
   }
+}
+
+const handleClearSelection = () => {
+  store.clearSelection()
+  showSelectionModal.value = false
 }
 </script>
 
@@ -408,344 +393,29 @@ const handlePaste = (e: ClipboardEvent) => {
     </div>
 
     <!-- Toast Notification -->
-    <div
-      v-if="store.showToast"
-      class="fixed bottom-8 right-8 bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded shadow-lg z-50 text-sm font-medium transition-opacity duration-300"
-    >
-      {{ store.clipboardMessage }}
-    </div>
+    <ToastNotification :show="store.showToast" :message="store.clipboardMessage" />
 
     <!-- Selection Modal -->
-    <div
+    <SelectionModal
       v-if="showSelectionModal"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50 transition-opacity"
-      @click.self="showSelectionModal = false"
-    >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col max-h-[80vh] transform transition-all scale-100"
-      >
-        <div
-          class="p-4 border-b dark:border-gray-700 flex justify-between items-center"
-        >
-          <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-            Selected Files ({{ store.selectedLeft.size }})
-          </h3>
-          <button
-            @click="showSelectionModal = false"
-            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div class="flex-grow overflow-auto p-4 bg-gray-50 dark:bg-gray-900">
-          <ul class="space-y-1">
-            <li
-              v-for="path in selectionList"
-              :key="path"
-              class="text-sm font-mono text-gray-700 dark:text-gray-300 p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 relative group cursor-default"
-            >
-              <!-- Display Filename -->
-              <span class="block group-hover:hidden truncate">{{
-                getFileName(path)
-              }}</span>
-              <!-- Display Full Path on Hover (Inline Replacement) -->
-              <span
-                class="hidden group-hover:block text-xs bg-gray-100 dark:bg-gray-600 p-1 rounded break-all"
-                >{{ path }}</span
-              >
-            </li>
-          </ul>
-          <div
-            v-if="selectionList.length === 0"
-            class="text-gray-500 dark:text-gray-400 text-center italic py-4"
-          >
-            No files selected.
-          </div>
-        </div>
-
-        <div
-          class="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-end space-x-2"
-        >
-          <button
-            @click="clearSelection"
-            class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded border border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            Clear Selection
-          </button>
-          <button
-            @click="showSelectionModal = false"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+      :selected-paths="store.selectedLeft"
+      @clear="handleClearSelection"
+      @close="showSelectionModal = false"
+    />
 
     <!-- Help Modal -->
-    <div
-      v-if="showHelpModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-      @click.self="showHelpModal = false"
-    >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 animate-fade-in-up"
-      >
-        <h3
-          class="text-xl font-bold mb-4 flex items-center text-gray-900 dark:text-white"
-        >
-          <svg
-            class="w-6 h-6 mr-2 text-blue-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          Search Help
-        </h3>
-        <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
-          <p>
-            The <strong>Left Pane</strong> supports Regular Expressions (Regex)
-            and <strong>Multi-File Search</strong>.
-          </p>
-
-          <div
-            class="bg-gray-50 dark:bg-gray-700 p-3 rounded border dark:border-gray-600"
-          >
-            <h4 class="font-semibold mb-2">Regex Examples:</h4>
-            <ul class="list-disc pl-5 space-y-1 mb-4">
-              <li><code>\.jpg$</code> - Find all JPG images</li>
-              <li><code>^report</code> - Files starting with "report"</li>
-              <li>
-                <code>\d{4}</code> - Files containing 4 digits (e.g., years)
-              </li>
-            </ul>
-
-            <h4 class="font-semibold mb-2">Multi-File Search:</h4>
-            <ul class="list-disc pl-5 space-y-1">
-              <li>
-                Separate multiple queries with commas:
-                <code>img_01.jpg, img_02.png</code>
-              </li>
-              <li>
-                <strong>Paste Support</strong>: Paste a list of filenames (one
-                per line) to automatically convert them into a comma-separated
-                search.
-              </li>
-            </ul>
-          </div>
-
-          <div
-            class="bg-gray-50 dark:bg-gray-700 p-3 rounded border dark:border-gray-600"
-          >
-            <h4 class="font-semibold mb-2">Keyboard Shortcuts:</h4>
-            <ul class="space-y-1 text-xs">
-              <li class="flex justify-between">
-                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Ctrl</kbd> + <kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">A</kbd></span>
-                <span>Select all files</span>
-              </li>
-              <li class="flex justify-between">
-                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Ctrl</kbd> + <kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">C</kbd></span>
-                <span>Copy selected paths</span>
-              </li>
-              <li class="flex justify-between">
-                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">F5</kbd></span>
-                <span>Refresh current directory</span>
-              </li>
-              <li class="flex justify-between">
-                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Delete</kbd></span>
-                <span>Clear selection</span>
-              </li>
-              <li class="flex justify-between">
-                <span><kbd class="bg-gray-200 dark:bg-gray-600 px-1 rounded">Esc</kbd></span>
-                <span>Close modals / Clear selection</span>
-              </li>
-            </ul>
-          </div>
-
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            Note: The <strong>Right Pane</strong> search uses exact matching for
-            folder names.
-          </p>
-        </div>
-        <div class="mt-6 text-right">
-          <button
-            @click="showHelpModal = false"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Got it
-          </button>
-        </div>
-      </div>
-    </div>
+    <HelpModal v-if="showHelpModal" @close="showHelpModal = false" />
 
     <!-- Copy Confirmation Modal -->
-    <div
+    <CopyConfirmModal
       v-if="store.showCopyConfirm"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm"
-      @click.self="store.cancelCopy"
-    >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-fade-in-up"
-      >
-        <div
-          class="p-5 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700"
-        >
-          <h3
-            class="font-bold text-lg text-gray-800 dark:text-white flex items-center"
-          >
-            <svg
-              class="w-5 h-5 mr-2 text-blue-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-              />
-            </svg>
-            Confirm Copy
-          </h3>
-        </div>
+      :selected-paths="store.selectedLeft"
+      :destination-path="store.selectedRight"
+      @confirm="store.confirmCopy"
+      @cancel="store.cancelCopy"
+    />
 
-        <div class="p-5 space-y-4 text-gray-800 dark:text-gray-200">
-          <div>
-            <label
-              class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1"
-              >Destination</label
-            >
-            <div
-              class="text-sm font-mono bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-100 dark:border-blue-800 text-blue-800 dark:text-blue-200 break-all"
-            >
-              {{ store.selectedRight }}
-            </div>
-          </div>
-
-          <div>
-            <label
-              class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1"
-            >
-              Files to Copy ({{ store.selectedLeft.size }})
-            </label>
-            <div
-              class="max-h-40 overflow-auto border dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-900 p-2"
-            >
-              <ul class="space-y-1">
-                <li
-                  v-for="path in selectionList"
-                  :key="path"
-                  class="text-xs font-mono text-gray-600 dark:text-gray-400 break-all truncate"
-                >
-                  {{ getFileName(path) }}
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            Are you sure you want to proceed with this operation?
-          </div>
-        </div>
-
-        <div
-          class="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex justify-end space-x-3"
-        >
-          <button
-            @click="store.cancelCopy"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            Cancel
-          </button>
-          <button
-            @click="store.confirmCopy"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Confirm Copy
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Progress Locking Overlay -->
-    <div
-      v-if="store.isCopying"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm cursor-wait"
-    >
-      <div
-        class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-md text-center"
-      >
-        <div class="mb-6 relative inline-block">
-          <svg
-            class="animate-spin h-12 w-12 text-blue-600 mx-auto"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-        </div>
-
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2">
-          Processing...
-        </h3>
-        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
-          {{ progressMessage }}
-        </p>
-
-        <!-- Progress Bar -->
-        <div
-          class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-2 overflow-hidden"
-        >
-          <div
-            class="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out"
-            :style="{ width: `${progressPercent}%` }"
-          ></div>
-        </div>
-        <div
-          class="text-right text-xs text-gray-500 dark:text-gray-400 font-mono"
-        >
-          {{ progressPercent }}%
-        </div>
-      </div>
-    </div>
+    <!-- Progress Overlay -->
+    <ProgressOverlay :progress="store.copyProgress" />
   </div>
 </template>
-
-<style scoped>
-.animate-fade-in-up {
-  animation: fadeInUp 0.3s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

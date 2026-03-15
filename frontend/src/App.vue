@@ -2,6 +2,7 @@
 import { useI18n } from "vue-i18n";
 import { onMounted } from "vue";
 import { useFileSystemStore } from '@/stores/fileSystem';
+import ErrorBoundary from '@/components/ErrorBoundary.vue';
 
 const { t } = useI18n();
 const store = useFileSystemStore();
@@ -10,10 +11,9 @@ onMounted(() => {
   store.applyTheme();
 });
 
-// This was preventing clicks, removing it to allow UI interaction
-// document.body.addEventListener("click", function (event) {
-//   event.preventDefault();
-// });
+const handleError = (error: Error) => {
+  console.error('Application error:', error);
+};
 </script>
 
 <template>
@@ -28,7 +28,9 @@ onMounted(() => {
     </div>
     <!-- Page -->
     <div class="view flex-grow overflow-hidden relative">
-      <router-view />
+      <ErrorBoundary @error="handleError">
+        <router-view />
+      </ErrorBoundary>
     </div>
   </div>
 </template>
